@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>24ゲーム</title>
+<style>
+  body{font-family:sans-serif;background:#1e1e1e;color:#fff;margin:0;padding:20px;}
+  .container{max-width:600px;margin:0 auto;background:#2c2c2c;padding:20px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,0.5);}
+  h1{text-align:center;}
+  .cards{display:flex;gap:10px;justify-content:center;margin:20px 0;}
+  .card{padding:15px 20px;background:#2563eb;color:#fff;border-radius:8px;font-size:20px;font-weight:bold;}
+  input[type=text]{width:100%;padding:10px;font-size:16px;margin-bottom:12px;border-radius:8px;border:1px solid #555;background:#444;color:#fff;}
+  button{padding:10px 15px;font-size:16px;border:none;border-radius:8px;background:#10b981;color:#fff;cursor:pointer;margin-right:6px;}
+  #message{margin-top:12px;font-weight:bold;text-align:center;}
+  #score{margin-top:12px;font-size:18px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>24ゲーム</h1>
+  <div class="cards" id="cards"></div>
+  <input type="text" id="answer" placeholder="ここに計算式を入力（例: (5+3)*(7-1)）" />
+  <div style="text-align:center;">
+    <button id="checkBtn">判定</button>
+    <button id="newBtn">新しいカード</button>
+  </div>
+  <div id="message"></div>
+  <div id="score">レベル: 0 | ポイント: 0</div>
+</div>
+
+<script>
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+function drawCards(){
+    const suits = ['♠','♥','♦','♣'];
+    const ranks = [1,2,3,4,5,6,7,8,9,10,11,12,13];
+    let deck = [];
+    suits.forEach(s => ranks.forEach(r => deck.push(r)));
+    shuffle(deck);
+    const hand = deck.slice(0,4);
+    return hand;
+}
+
+let currentHand = [];
+let totalPoints = 0;
+let level = 0;
+const cardsDiv = document.getElementById('cards');
+const answerInput = document.getElementById('answer');
+const messageDiv = document.getElementById('message');
+const scoreDiv = document.getElementById('score');
+
+function renderCards(){
+    cardsDiv.innerHTML = '';
+    currentHand.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.textContent = c;
+        cardsDiv.appendChild(div);
+    });
+    answerInput.value = '';
+    messageDiv.textContent = '';
+}
+
+function startNew(){
+    currentHand = drawCards();
+    renderCards();
+}
+
+function updateScore(){
+    level = Math.floor(totalPoints / 13);
+    scoreDiv.textContent = `レベル: ${level} | ポイント: ${totalPoints}`;
+}
+
+function checkAnswer(){
+    const expr = answerInput.value;
+    try{
+        if(!/^[0-9\+\-\*\/\(\)\s]+$/.test(expr)){
+            messageDiv.textContent = '無効な文字が含まれています';
+            return;
+        }
+        const usedNumbers = expr.match(/\d+/g)?.map(Number) || [];
+        const handSorted = [...currentHand].sort((a,b)=>a-b);
+        const usedSorted = [...usedNumbers].sort((a,b)=>a-b);
+        if(JSON.stringify(handSorted)!==JSON.stringify(usedSorted)){
+            messageDiv.textContent = 'カードの数字を全て使ってください';
+            return;
+        }
+        const result = eval(expr);
+        if(Math.abs(result-24)<1e-6){
+            totalPoints += 1;
+            updateScore();
+            if(totalPoints % 13 === 0){
+                messageDiv.textContent = '🎉 レベルアップ！13ポイント獲得しました！';
+            } else {
+                messageDiv.textContent = '🎉 正解！24になりました！';
+            }
+        }else{
+            messageDiv.textContent = `❌ 不正解。計算結果は ${result} です`; 
+        }
+    }catch(e){
+        messageDiv.textContent = '計算式が正しくありません';
+    }
+}
+
+document.getElementById('checkBtn').addEventListener('click', checkAnswer);
+document.getElementById('newBtn').addEventListener('click', startNew);
+
+startNew();
+</script>
+</body>
+</html>
